@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Nicotine.Client</AssemblyName>
+    <RootNamespace>Nicotine.Client</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx" HintPath="$(SptRoot)\BepInEx\core\BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(SptRoot)\BepInEx\core\0Harmony.dll" Private="false" />
+    <Reference Include="Assembly-CSharp" HintPath="$(SptManagedDir)\Assembly-CSharp.dll" Private="false" />
+    <Reference Include="Comfort" HintPath="$(SptManagedDir)\Comfort.dll" Private="false" />
+    <Reference Include="Comfort.Unity" HintPath="$(SptManagedDir)\Comfort.Unity.dll" Private="false" />
+    <Reference Include="CommonExtensions" HintPath="$(SptManagedDir)\CommonExtensions.dll" Private="false" />
+    <Reference Include="ItemComponent.Types" HintPath="$(SptManagedDir)\ItemComponent.Types.dll" Private="false" />
+    <Reference Include="DissonanceVoip" HintPath="$(SptManagedDir)\DissonanceVoip.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(SptManagedDir)\UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(SptManagedDir)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AnimationModule" HintPath="$(SptManagedDir)\UnityEngine.AnimationModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AssetBundleModule" HintPath="$(SptManagedDir)\UnityEngine.AssetBundleModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AudioModule" HintPath="$(SptManagedDir)\UnityEngine.AudioModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ParticleSystemModule" HintPath="$(SptManagedDir)\UnityEngine.ParticleSystemModule.dll" Private="false" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(SptManagedDir)\Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="spt-common" HintPath="$(SptPluginsDir)\spt\spt-common.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="DeployNicotineClient" AfterTargets="Build" Condition="'$(DeployToSpt)' == 'true' And Exists('$(SptPluginsDir)')">
+    <Copy SourceFiles="$(OutDir)$(AssemblyName).dll" DestinationFolder="$(SptPluginsDir)\Nicotine" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\unity\Build\nicotine.bundle" DestinationFolder="$(SptPluginsDir)\Nicotine"
+          SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\unity\Build\nicotine.bundle')" />
+    <Message Importance="high" Text="Nicotine client plugin deployed to $(SptPluginsDir)\Nicotine" />
+  </Target>
+
+</Project>

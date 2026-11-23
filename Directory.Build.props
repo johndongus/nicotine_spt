@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <SptRoot Condition="'$(SptRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</SptRoot>
+    <SptServerDir>$(SptRoot)\SPT_Runtime</SptServerDir>
+    <SptManagedDir>$(SptRoot)\EscapeFromTarkov_Data\Managed</SptManagedDir>
+    <SptPluginsDir>$(SptRoot)\BepInEx\plugins</SptPluginsDir>
+
+    <DeployToSpt Condition="'$(DeployToSpt)' == ''">true</DeployToSpt>
+
+    <NicotineVersion>0.1.0</NicotineVersion>
+    <Version>$(NicotineVersion)</Version>
+    <Deterministic>true</Deterministic>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+</Project>

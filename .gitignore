@@ -1,0 +1,15 @@
+/*
+!/.gitignore
+!/README.md
+!/Directory.Build.props
+!/Nicotine.sln
+!/src/
+!/unity/
+/unity/*
+!/unity/Build/
+/unity/Build/*
+!/unity/Build/nicotine.bundle
+bin/
+obj/
+.vs/
+*.user
