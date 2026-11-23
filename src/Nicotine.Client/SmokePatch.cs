@@ -9,6 +9,8 @@ namespace Nicotine.Client
     [HarmonyPatch(typeof(ActiveHealthController), nameof(ActiveHealthController.DoMedEffect))]
     internal static class SmokePatch
     {
+        private const float Margin = 0.001f;
+
         public static bool IsPack(Item item) => item is FoodDrink && Backend.PackIds.Contains(item.TemplateId.ToString());
 
         [HarmonyPrefix]
@@ -25,7 +27,8 @@ namespace Nicotine.Client
                 return;
             }
 
-            amount = Mathf.Min(1f, component.HpPercent) / component.MaxResource;
+            var cigarette = Mathf.Min(1f, component.HpPercent);
+            amount = (cigarette > Margin * 2f ? cigarette - Margin : cigarette) / component.MaxResource;
         }
     }
 }

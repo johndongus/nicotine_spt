@@ -10,7 +10,7 @@ public record NicotineMetadata : IModMetadata
     public string Name { get; init; } = "Nicotine";
     public string Author { get; init; } = "john";
     public List<string>? Contributors { get; init; }
-    public Version Version { get; init; } = new("0.1.0");
+    public Version Version { get; init; } = new("0.1.1");
     public Range SptVersion { get; init; } = new("~4.1.0");
     public bool HasPrepatcher { get; init; }
     public List<string>? Incompatibilities { get; init; }

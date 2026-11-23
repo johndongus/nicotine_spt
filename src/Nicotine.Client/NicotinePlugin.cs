@@ -10,7 +10,7 @@ namespace Nicotine.Client
     public sealed class NicotinePlugin : BaseUnityPlugin
     {
         public const string Guid = "com.nicotine.client";
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
 
         internal static ManualLogSource Log;
         internal static ConfigEntry<bool> Enabled;

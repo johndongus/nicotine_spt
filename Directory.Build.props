@@ -7,7 +7,7 @@
 
     <DeployToSpt Condition="'$(DeployToSpt)' == ''">true</DeployToSpt>
 
-    <NicotineVersion>0.1.0</NicotineVersion>
+    <NicotineVersion>0.1.1</NicotineVersion>
     <Version>$(NicotineVersion)</Version>
     <Deterministic>true</Deterministic>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>

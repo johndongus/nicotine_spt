@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Comfort.Common;
 using EFT;
 using EFT.Animations;
+using EFT.HealthSystem;
 using UnityEngine;
 
 namespace Nicotine.Client
@@ -40,6 +41,13 @@ namespace Nicotine.Client
         public Player.MedsController Controller;
         public WeaponPrefab Prefab;
         private bool _wasInHands;
+
+        private const int HandsLayer = 1;
+        private const float DragLoopFrom = 0.86f;
+        private const float DragExitAt = 0.9f;
+        private const float DragSpeed = 1.2f;
+        private const float DragBlend = 0.25f;
+        private Animator _animator;
 
         private static bool _warned;
         private readonly List<(Transform Bone, Vector3 Position, Quaternion Rotation, Vector3 Scale)> _pack =
@@ -101,7 +109,71 @@ namespace Nicotine.Client
             _inLips = false;
             _releaseAt = -1f;
             _wasInHands = false;
+            _animator = GetComponent<Animator>();
             enabled = true;
+        }
+
+        private void KeepSmoking()
+        {
+            if (_animator == null || Cigarette == null)
+            {
+                return;
+            }
+
+            var current = _animator.GetCurrentAnimatorClipInfo(HandsLayer);
+            if (current.Length == 0 || current[0].clip == null || !current[0].clip.name.StartsWith("nicotine_smoke"))
+            {
+                return;
+            }
+
+            var state = _animator.GetCurrentAnimatorStateInfo(HandsLayer);
+            if (_animator.IsInTransition(HandsLayer))
+            {
+                var next = _animator.GetNextAnimatorClipInfo(HandsLayer);
+                if (next.Length == 0 || next[0].clip == null || next[0].clip.name != "nicotine_flick")
+                {
+                    return;
+                }
+            }
+            else if (state.normalizedTime < DragLoopFrom)
+            {
+                return;
+            }
+
+            var speed = Mathf.Abs(state.speed * state.speedMultiplier * _animator.speed);
+            var drag = current[0].clip.length / (speed > 0.01f ? speed : DragSpeed);
+            if (SecondsLeft() < drag * DragExitAt + DragBlend)
+            {
+                return;
+            }
+
+            _animator.CrossFadeInFixedTime(state.fullPathHash, DragBlend, HandsLayer, 0f);
+        }
+
+        private float SecondsLeft()
+        {
+            var health = Owner != null ? Owner.ActiveHealthController : null;
+            var item = Controller != null ? Controller.Item : null;
+            if (health == null || item == null)
+            {
+                return 0f;
+            }
+
+            foreach (var effect in health.Effects)
+            {
+                if (effect is ActiveHealthController.MedEffect med && ReferenceEquals(med.MedItem, item))
+                {
+                    switch (med.State)
+                    {
+                        case EEffectState.Added:
+                            return med.CurStateTimeLeft + med.WorkStateTime;
+                        case EEffectState.Started:
+                            return med.CurStateTimeLeft;
+                    }
+                }
+            }
+
+            return 0f;
         }
 
         private void OnEnable() => Application.onBeforeRender += FollowHead;
@@ -287,6 +359,8 @@ namespace Nicotine.Client
                 StartCoroutine(_pendingMeasure);
                 _pendingMeasure = null;
             }
+
+            KeepSmoking();
 
             if (Flame == null || !Flame.gameObject.activeInHierarchy)
             {
