@@ -2,6 +2,10 @@
 
 Smokable cigarettes for SPT 4.1 (EFT 0.16.9), with Fika support. The four cigarette packs (Apollo Soyuz, Malboro, Wilston, Strike) hold 20 cigarettes each, with a first-person animation: light up, one or two drags, flick it away.
 
+[![Lighting up and smoking in raid](media/smoke.gif)](media/nicotine.mp4)
+
+[Watch the full video](media/nicotine.mp4)
+
 ## What a cigarette does
 
 - **Item:** +3 energy, -0.5 hydration, 3 min painkiller.
