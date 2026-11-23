@@ -17,6 +17,15 @@ namespace Nicotine.Client
         public const string CigaretteName = "NicotineCigarette";
         public const string LighterName = "NicotineLighter";
         public const string ExhaleName = "NicotineExhale";
+        private const string ObservedCigaretteName = "NicotineCigaretteTP";
+        private const string ObservedExhaleName = "NicotineExhaleTP";
+        private static readonly HashSet<string> OurNames = new HashSet<string>
+        {
+            CigaretteName, LighterName, ExhaleName, ObservedCigaretteName, ObservedExhaleName,
+        };
+
+        private static readonly Vector3 HoldPosition = new Vector3(-0.1229f, -0.0483f, -0.0169f);
+        private static readonly Quaternion HoldRotation = new Quaternion(-0.6797f, -0.4748f, -0.3681f, 0.4209f);
         private const string RightMarker = "weapon_R_IK_marker";
         private const string LeftMarker = "weapon_L_IK_marker";
         private const string CameraBone = "Camera_animated";
@@ -75,16 +84,16 @@ namespace Nicotine.Client
 
         private static bool MutePrefix(BaseSoundPlayer __instance) => !Muted.Contains(__instance);
 
-        private static bool _hookLogged;
+        private static readonly HashSet<Type> Hooked = new HashSet<Type>();
+        private static bool _observedLogged;
 
         private static void SetupPrefix(Player.MedsController controller, Player player, Item item)
         {
             try
             {
-                if (!_hookLogged)
+                if (controller != null && Hooked.Add(controller.GetType()))
                 {
-                    _hookLogged = true;
-                    NicotinePlugin.Log.LogInfo($"Nicotine: meds/food setup hook active ({controller?.GetType().Name})");
+                    NicotinePlugin.Log.LogInfo($"Nicotine: meds/food setup hook active ({controller.GetType().Name})");
                 }
 
                 var prefab = controller != null && controller._controllerObject != null ? controller._controllerObject.GetComponent<WeaponPrefab>() : null;
@@ -100,14 +109,18 @@ namespace Nicotine.Client
                     return;
                 }
 
-                var smoke = SmokePatch.IsPack(item) && player != null && player.IsYourPlayer && LoadBundle();
-                if (smoke)
+                var pack = SmokePatch.IsPack(item) && player != null && LoadBundle();
+                if (pack && player.IsYourPlayer)
                 {
                     Apply(controller, prefab, instance, animator, player);
                 }
                 else
                 {
                     Restore(prefab, instance, animator, player);
+                    if (pack)
+                    {
+                        ApplyObserved(controller, prefab, instance, player);
+                    }
                 }
             }
             catch (Exception ex)
@@ -124,6 +137,13 @@ namespace Nicotine.Client
             {
                 NicotinePlugin.Log.LogWarning($"Nicotine: {CigaretteCarrier}/{LighterCarrier} not found in {instance.name}, keeping the snack's look");
                 return;
+            }
+
+            Discard(instance, name => name == ObservedCigaretteName || name == ObservedExhaleName);
+            var observed = instance.GetComponent<ObservedSmoke>();
+            if (observed != null)
+            {
+                observed.enabled = false;
             }
 
             var events = instance.GetComponent<SmokeEvents>() ?? instance.AddComponent<SmokeEvents>();
@@ -183,6 +203,58 @@ namespace Nicotine.Client
             }
         }
 
+        private static void ApplyObserved(Player.MedsController controller, WeaponPrefab prefab, GameObject instance, Player player)
+        {
+            var hand = Find(instance.transform, RightMarker);
+            if (hand == null)
+            {
+                NicotinePlugin.Log.LogWarning($"Nicotine: {RightMarker} not found in {instance.name}, other players' smoke keeps the snack's look");
+                return;
+            }
+
+            if (!_observedLogged)
+            {
+                _observedLogged = true;
+                NicotinePlugin.Log.LogInfo($"Nicotine: showing {player.Profile?.Nickname ?? "another player"}'s smoke ({controller.GetType().Name})");
+            }
+
+            var cigarette = Attach(instance, hand, _cigarettePrefab, ObservedCigaretteName, false);
+            cigarette.localPosition = HoldPosition;
+            cigarette.localRotation = HoldRotation;
+            var exhale = _exhalePrefab != null ? Attach(instance, instance.transform, _exhalePrefab, ObservedExhaleName, false) : null;
+            SetItemMeshes(instance, false);
+
+            var sound = prefab.GetComponent<BaseSoundPlayer>();
+            if (sound != null)
+            {
+                Muted.Add(sound);
+            }
+
+            var ember = cigarette.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "Ember");
+            var smoke = instance.GetComponent<ObservedSmoke>() ?? instance.AddComponent<ObservedSmoke>();
+            smoke.Cigarette = cigarette;
+            smoke.Ember = ember != null ? ember.gameObject : null;
+            smoke.Exhale = exhale != null ? exhale.GetComponent<ParticleSystem>() : null;
+            smoke.Sound = _lighterSound;
+            smoke.Owner = player;
+            smoke.Controller = controller;
+            smoke.Prefab = prefab;
+            smoke.BeginSmoke();
+        }
+
+        private static int Discard(GameObject instance, Func<string, bool> which)
+        {
+            var found = instance.GetComponentsInChildren<Transform>(true).Where(t => which(t.name)).ToList();
+            foreach (var t in found)
+            {
+                t.gameObject.SetActive(false);
+                t.SetParent(null, false);
+                UnityEngine.Object.Destroy(t.gameObject);
+            }
+
+            return found.Count;
+        }
+
         private static Transform Attach(GameObject instance, Transform parent, GameObject prefab, string name, bool onCarrier)
         {
             var child = parent.Find(name);
@@ -211,16 +283,9 @@ namespace Nicotine.Client
                 Muted.Remove(sound);
             }
 
-            var ours = instance.GetComponentsInChildren<Transform>(true)
-                .Where(t => t.name == CigaretteName || t.name == LighterName || t.name == ExhaleName).ToList();
-            if (ours.Count == 0)
+            if (Discard(instance, OurNames.Contains) == 0)
             {
                 return;
-            }
-
-            foreach (var t in ours)
-            {
-                UnityEngine.Object.Destroy(t.gameObject);
             }
 
             var events = instance.GetComponent<SmokeEvents>();
@@ -229,6 +294,13 @@ namespace Nicotine.Client
                 events.RestorePack();
                 events.enabled = false;
             }
+
+            var observed = instance.GetComponent<ObservedSmoke>();
+            if (observed != null)
+            {
+                observed.enabled = false;
+            }
+
             SetItemMeshes(instance, true);
             if (prefab.AnimatorController != null)
             {
@@ -326,7 +398,7 @@ namespace Nicotine.Client
         {
             for (; t != null; t = t.parent)
             {
-                if (t.name == CigaretteName || t.name == LighterName || t.name == ExhaleName)
+                if (OurNames.Contains(t.name))
                 {
                     return true;
                 }

@@ -53,19 +53,20 @@ namespace Nicotine.Client
         private readonly List<(Transform Bone, Vector3 Position, Quaternion Rotation, Vector3 Scale)> _pack =
             new List<(Transform, Vector3, Quaternion, Vector3)>();
 
-        public void NicotineLighterClick()
+        public void NicotineLighterClick() => PlayLighter(Sound, Lighter != null ? Lighter.position : transform.position);
+
+        public static void PlayLighter(AudioClip sound, Vector3 position)
         {
-            if (Sound == null)
+            if (sound == null)
             {
                 return;
             }
 
-            var position = Lighter != null ? Lighter.position : transform.position;
             try
             {
                 if (Singleton<BetterAudio>.Instantiated)
                 {
-                    Singleton<BetterAudio>.Instance.PlayAtPoint(position, Sound, BetterAudio.AudioSourceGroupType.Character, 15, 0.8f);
+                    Singleton<BetterAudio>.Instance.PlayAtPoint(position, sound, BetterAudio.AudioSourceGroupType.Character, 15, 0.8f);
                     return;
                 }
             }
@@ -78,7 +79,7 @@ namespace Nicotine.Client
                 }
             }
 
-            AudioSource.PlayClipAtPoint(Sound, position, 0.8f);
+            AudioSource.PlayClipAtPoint(sound, position, 0.8f);
         }
 
         public void NicotineExhale()
